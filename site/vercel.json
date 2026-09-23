@@ -1,0 +1,5 @@
+{
+  "redirects": [
+    { "source": "/", "destination": "https://yask.dev/pulse", "permanent": false }
+  ]
+}

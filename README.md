@@ -8,7 +8,7 @@
 A quiet menu bar monitor for Apple Silicon Macs: CPU cores, GPU clocks and watts, memory pressure, disk and network.</p>
 
 <p align="center">
-  <a href="https://pulse-menubar.vercel.app">Website</a> ·
+  <a href="https://yask.dev/pulse">Website</a> ·
   <a href="https://github.com/yask123/pulse/releases/latest">Download</a> ·
   <a href="#install">Install</a>
 </p>
