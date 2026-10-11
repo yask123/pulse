@@ -6,10 +6,12 @@ import SwiftUI
 #endif
 struct PulseApp: App {
     @State private var monitor = Monitor()
+    @State private var watch = ProcessWatch()
+    @State private var catalog = AppCatalog()
 
     var body: some Scene {
         MenuBarExtra {
-            Panel().environment(monitor)
+            Panel().environment(monitor).environment(watch).environment(catalog)
         } label: {
             Image(nsImage: monitor.glyph)
         }
@@ -19,7 +21,7 @@ struct PulseApp: App {
 
 // MARK: - Palette & type
 
-private enum Style {
+enum Style {
     static let accent = Color(nsColor: .adaptive(dark: (0.42, 0.80, 0.95), light: (0.05, 0.52, 0.78)))
     static let hairline = Color.primary.opacity(0.08)
     static let well = Color.primary.opacity(0.045)
@@ -56,25 +58,46 @@ extension NSColor {
 
 // MARK: - Panel
 
+enum Tab: String, CaseIterable { case vitals = "Vitals", running = "Running", apps = "Apps" }
+
 struct Panel: View {
     @Environment(Monitor.self) private var m
+    @Environment(ProcessWatch.self) private var watch
     @State private var explaining: String?
+    @State private var tab: Tab
 
-    init(explaining: String? = nil) { _explaining = State(initialValue: explaining) }
+    /// Opens on whichever screen you left it on.
+    init(explaining: String? = nil, tab: Tab? = nil) {
+        _explaining = State(initialValue: explaining)
+        _tab = State(initialValue: tab ?? UserDefaults.standard.string(forKey: "tab").flatMap(Tab.init) ?? .vitals)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Explainable { header }
-            Card { cpu }
-            Card { graphics }
-            Card { memory }
-            Card { storage }
-            Card { network }
+            TabBar(tab: $tab, badge: !watch.orphans.isEmpty)
+            switch tab {
+            case .vitals:
+                Explainable { header }
+                Card { cpu }
+                Card { graphics }
+                Card { memory }
+                Card { storage }
+                Card { network }
+            case .running:
+                RunningView()
+            case .apps:
+                AppsView()
+            }
             Explainable { footer }
         }
         .padding(14)
         .frame(width: 348)
         .environment(\.explaining, $explaining)
+        .onChange(of: tab, initial: true) {
+            explaining = nil
+            watch.visible = tab == .running
+            UserDefaults.standard.set(tab.rawValue, forKey: "tab")
+        }
     }
 
     // MARK: Header
@@ -98,8 +121,32 @@ struct Panel: View {
                 .explains("This Mac's network name")
             Text("\(m.chip.replacingOccurrences(of: "Apple ", with: "")) · \(m.cores.count)-core CPU\(m.gpu.map { " · \($0.cores)-core GPU" } ?? "") · \(Fmt.bytes(m.memory.total, binary: true, digits: 0)) · macOS \(m.os.majorVersion).\(m.os.minorVersion)")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
+            if !watch.snapshot.strays.isEmpty { leftoverHint }
         }
         .padding(.horizontal, 4).padding(.top, 2)
+    }
+
+    /// A quiet pointer to the Running screen when dev processes are still up.
+    private var leftoverHint: some View {
+        let strays = watch.snapshot.strays, orphans = watch.orphans
+        let what = orphans.isEmpty
+            ? "\(strays.count) dev \(strays.count == 1 ? "process" : "processes") running"
+            : "\(orphans.count) orphaned dev \(orphans.count == 1 ? "process" : "processes")"
+        return Button { withAnimation(.snappy(duration: 0.25)) { tab = .running } } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "terminal").font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(orphans.isEmpty ? Style.accent : Health.elevated.color)
+                Text(what)
+                Text("· \(Fmt.bytes(strays.reduce(0) { $0 + $1.memory }, binary: true, digits: 0))").foregroundStyle(.secondary)
+                Image(systemName: "chevron.right").font(.system(size: 8, weight: .bold)).foregroundStyle(.tertiary)
+            }
+            .font(.system(size: 11))
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(Style.well, in: .capsule)
+            .overlay(Capsule().strokeBorder(Style.hairline, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 2)
     }
 
     // MARK: CPU
@@ -299,7 +346,7 @@ struct Panel: View {
 // Menu bar panels never become the active app, so hover tooltips don't appear. Instead, any element
 // marked `.explains(_:)` can be clicked; its explanation opens inline in the enclosing card.
 
-private extension EnvironmentValues {
+extension EnvironmentValues {
     @Entry var explaining: Binding<String?> = .constant(nil)
 }
 
@@ -333,7 +380,7 @@ extension View {
 }
 
 /// Shows the explanation for whichever element inside it is selected.
-private struct Explainable<Content: View>: View {
+struct Explainable<Content: View>: View {
     @ViewBuilder var content: Content
     @Environment(\.explaining) private var selection
     @State private var text: String?
@@ -363,7 +410,7 @@ private struct Explainable<Content: View>: View {
 
 // MARK: - Components
 
-private struct Card<Content: View>: View {
+struct Card<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         Explainable { content }
@@ -590,7 +637,7 @@ private struct Rate: View {
     }
 }
 
-private struct TightLabel: LabelStyle {
+struct TightLabel: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 4) { configuration.icon; configuration.title }
     }

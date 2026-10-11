@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pulse — observability for a fleet of one</title>
-<meta name="description" content="A quiet menu bar monitor for Apple Silicon Macs. CPU cores, GPU clocks and watts, memory pressure, disk and network, in glass.">
+<meta name="description" content="A quiet menu bar monitor for Apple Silicon Macs. CPU cores, GPU clocks and watts, memory pressure, disk and network, in glass. Finds the dev servers you left running and uninstalls apps cleanly.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#07090d">
 <meta property="og:title" content="Pulse — observability for a fleet of one">
@@ -136,6 +136,19 @@
   .card p { color: var(--muted); font-size: 15px; }
   .card p b { color: var(--fg); font-weight: 500; }
 
+  /* Tidy: two product shots with the story beside them */
+  section.tidy { padding: 40px 0 110px; border-top: 1px solid var(--line); }
+  .tidy h2 { font-size: clamp(32px, 4.2vw, 48px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; max-width: 14em; }
+  .tidy h2 em { font-style: normal; color: var(--accent); }
+  .tidy .lede { margin-top: 18px; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin: 56px 0 64px; align-items: start; }
+  .shot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .shot img { width: 100%; max-width: 360px; height: auto;
+    filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.1)); }
+  .shot figcaption { font: 12.5px/1.5 var(--mono); color: var(--faint); text-align: center; max-width: 30em; }
+  .shot figcaption b { color: var(--muted); font-weight: 500; }
+  .shot .glow { top: 8%; right: 10%; width: 80%; height: 60%; }
+
   footer { border-top: 1px solid var(--line); padding: 28px 0 40px; display: flex; justify-content: space-between; gap: 16px; font: 12px var(--mono); color: var(--faint); }
   footer a:hover { color: var(--fg); }
 
@@ -144,6 +157,7 @@
     .stage { align-items: center; }
     .panel { margin-right: 0; }
     .cards { grid-template-columns: 1fr; }
+    .shots { grid-template-columns: 1fr; gap: 56px; }
   }
   @media (max-width: 520px) {
     .wrap { padding: 0 16px; }
@@ -162,6 +176,7 @@
     <a class="brand" href="/pulse"><img src="/pulse/assets/icon.png" alt="">Pulse</a>
     <div class="links">
       <a href="#watches">What it watches</a>
+      <a href="#tidies">What it tidies</a>
       <a href="https://github.com/yask123/pulse/releases/latest">Download</a>
       <a href="https://github.com/yask123/pulse">GitHub</a>
     </div>
@@ -171,7 +186,7 @@
     <div>
       <span class="eyebrow"><span class="dot"></span>All systems nominal</span>
       <h1>Observability for a fleet of <em>one</em>.</h1>
-      <p class="lede">Pulse is a quiet menu bar monitor for Apple Silicon. <b>CPU cores, GPU clocks and watts, memory pressure, disk and network</b>: the numbers an infra engineer would want, rendered in glass.</p>
+      <p class="lede">Pulse is a quiet menu bar monitor for Apple Silicon. <b>CPU cores, GPU clocks and watts, memory pressure, disk and network</b>: the numbers an infra engineer would want, rendered in glass. And when something's off, it shows you <b>what was left running</b> and helps you clean up.</p>
 
       <div class="install">
         <div class="cmd">
@@ -184,7 +199,8 @@
       <dl class="spec">
         <div><dt>Sampling</dt><dd>every 2 s · 2 min of history</dd></div>
         <div><dt>Footprint</dt><dd>~0.1% CPU · one native binary</dd></div>
-        <div><dt>Privileges</dt><dd>none. no root, no helper, no network</dd></div>
+        <div><dt>Privileges</dt><dd>none. no root, no helper</dd></div>
+        <div><dt>Network</dt><dd>none, unless you ask Claude</dd></div>
         <div><dt>Sources</dt><dd>mach · IOKit · IOReport · SMC</dd></div>
         <div><dt>Requires</dt><dd>macOS 26+ · Apple Silicon</dd></div>
         <div><dt>License</dt><dd>MIT</dd></div>
@@ -199,7 +215,7 @@
         <svg class="icon" viewBox="0 0 22 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="0.6" y="0.6" width="18" height="10.8" rx="3"/><rect x="2.4" y="2.4" width="12" height="7.2" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4.2v3.6" stroke-linecap="round"/></svg>
         <span>Tue 6:01 PM</span>
       </div>
-      <img class="panel" src="/pulse/assets/panel.png" width="1044" height="2514"
+      <img class="panel" src="/pulse/assets/panel.png" width="1044" height="2628"
            alt="The Pulse panel: health status, CPU per-core load, GPU clock, power and temperature, memory composition, storage and network.">
     </div>
   </header>
@@ -213,6 +229,36 @@
       <div class="card"><h3>I/O</h3><p>SSD capacity with live read/write throughput. Network in and out on physical interfaces, so VPN traffic isn't counted twice.</p></div>
       <div class="card"><h3>Health</h3><p>One light. <b>Green, amber, red</b>, with the reason: memory pressure, swapping, thermal throttling, disk nearly full.</p></div>
       <div class="card"><h3>Explains itself</h3><p>Click any number for a one-line, plain-English explanation of what it means and when to care.</p></div>
+    </div>
+  </section>
+
+  <section class="tidy" id="tidies">
+    <p class="kicker">What it tidies</p>
+    <h2>The server you forgot is still <em>running</em>.</h2>
+    <p class="lede">A Rails server from last week, a Python process whose terminal is long gone, a headless Chrome left by a test run. Pulse finds what dev work left behind, says why it matters, and puts it away.</p>
+
+    <div class="shots">
+      <figure class="shot">
+        <div class="glow"></div>
+        <img src="/pulse/assets/running.png" width="1044" height="2966" loading="lazy"
+             alt="The Running screen: Claude's diagnosis, a stray Python file server open to the network, open ports, and the heaviest apps.">
+        <figcaption><b>Running.</b> Dev processes, open ports and the heaviest apps, with one-click Stop. Ask Claude what's slowing the Mac.</figcaption>
+      </figure>
+      <figure class="shot">
+        <div class="glow"></div>
+        <img src="/pulse/assets/uninstall.png" width="1044" height="1533" loading="lazy"
+             alt="Uninstalling Visual Studio Code: the app and the caches, preferences and web storage it left in the Library, 706 MB in all.">
+        <figcaption><b>Apps.</b> Every app with its size and when you last used it. Uninstall takes the leftovers too.</figcaption>
+      </figure>
+    </div>
+
+    <div class="cards">
+      <div class="card"><h3>Leftovers</h3><p>Ruby, Python, Node, databases and headless browsers running outside any app. <b>Orphaned</b> ones, whose terminal is gone, are flagged in amber.</p></div>
+      <div class="card"><h3>Ports</h3><p>Every listening port and who owns it. A dev server <b>open to your whole Wi-Fi</b> gets marked, since it usually only needs localhost.</p></div>
+      <div class="card"><h3>Diagnose</h3><p>One click asks Claude, through your Claude Code login, what's actually hurting this Mac. A short answer, <b>with a Stop button on each finding</b>.</p></div>
+      <div class="card"><h3>Uninstall</h3><p>Quits the app and its menu bar helpers, then removes the caches, preferences and containers it left in your Library.</p></div>
+      <div class="card"><h3>Unused apps</h3><p>Sort by size or by when you last opened it. Apps untouched for <b>six months</b> stand out.</p></div>
+      <div class="card"><h3>Undoable</h3><p>Nothing is stopped or deleted without a second click, and uninstalls go <b>to the Trash</b>, so you can put them back.</p></div>
     </div>
   </section>
 

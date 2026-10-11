@@ -5,7 +5,8 @@
 <h1 align="center">Pulse</h1>
 
 <p align="center"><b>Observability for a fleet of one.</b><br>
-A quiet menu bar monitor for Apple Silicon Macs: CPU cores, GPU clocks and watts, memory pressure, disk and network.</p>
+A quiet menu bar monitor for Apple Silicon Macs: CPU cores, GPU clocks and watts, memory pressure, disk and network.<br>
+It also finds the dev servers you left running and uninstalls apps cleanly.</p>
 
 <p align="center">
   <a href="https://yask.dev/pulse">Website</a> ·
@@ -46,9 +47,28 @@ Click it for the panel:
 
 Click any number for a one-line explanation of what it means.
 
+### Running
+
+<p align="center"><img src="docs/panel-running-dark.png" width="360" alt="The Running screen"></p>
+
+| | |
+|---|---|
+| **Diagnose** | Asks Claude what's actually hurting the Mac, through your [Claude Code](https://claude.com/claude-code) login. A short verdict, with Stop or Quit on each finding. Only runs when you click. |
+| **Dev processes** | Ruby, Python, Node, databases, headless browsers and the like, running outside any app, that hold a port, use real CPU or memory, or whose parent is gone. Orphaned ones are flagged in amber. Shows the project folder, port and age, with Stop. |
+| **Ports** | Every other listening port and its owner. A Wi-Fi mark means it's open to your whole network. |
+| **Heaviest** | Apps by memory or CPU, helper processes added together, with Quit. An app that won't quit gets Force Quit. |
+
+### Apps
+
+<p align="center"><img src="docs/panel-apps-dark.png" width="360" alt="Uninstalling an app"></p>
+
+Every app you installed, with its size and when you last used it, sorted by size, by disuse, or by name. Uninstalling quits the app and anything running from inside it, then moves the app and the files it left in `~/Library` (caches, preferences, support files, web storage, launch agents) to the Trash. Leftovers matched by bundle identifier are selected; ones matched only by name are shown but not selected.
+
+macOS protects other apps' sandbox containers. To remove those too, give Pulse **Full Disk Access**; otherwise Pulse points you to them in Finder.
+
 ## How it works
 
-Everything runs in-process as your user. There's no root, no privileged helper, and no network access.
+Everything runs in-process as your user. There's no root and no privileged helper. Pulse makes no network requests of its own; Diagnose hands a text snapshot (process names, CPU, memory, ports, command lines with anything secret-looking stripped) to the `claude` CLI, and only when you click it.
 
 | Metric | Source |
 |---|---|
@@ -60,6 +80,8 @@ Everything runs in-process as your user. There's no root, no privileged helper, 
 | GPU clock residency and power | IOReport (`GPU Stats`, `Energy Model`), the private framework behind `powermetrics`, loaded at runtime |
 | GPU frequency and voltage table | `pmgr` device-tree `voltage-states9` |
 | GPU temperature | AppleSMC `Tg*` sensors |
+| Processes | `ps` for every process; `proc_pid_rusage`, `proc_pidfdinfo` and `KERN_PROCARGS2` for your own (footprint, listening sockets, working directory, arguments) |
+| App last used | Spotlight `kMDItemLastUsedDate`, else the app's own preferences and support files |
 
 IOReport and SMC aren't public APIs. If a future macOS moves them, those readouts show "—" and the rest keeps working.
 
@@ -78,7 +100,10 @@ git clone https://github.com/yask123/pulse && cd pulse
 `Tools/Snapshot.swift` renders the panel to PNG for design review:
 
 ```bash
-swiftc -parse-as-library -D SNAPSHOT Sources/*.swift Tools/Snapshot.swift -o /tmp/snap && /tmp/snap docs
+swiftc -parse-as-library -D SNAPSHOT Sources/*.swift Tools/Snapshot.swift -o /tmp/snap
+/tmp/snap docs                          # Vitals
+/tmp/snap docs - running                # Running (runs a real diagnosis)
+/tmp/snap docs - "apps:Visual Studio Code"   # an app's uninstall view
 ```
 
 ## License

@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "${0:A:h}"
 
-VERSION=1.0.0
+VERSION=1.1.0
 [[ "${1:-}" == "--release" ]] && VERSION="${2:?version required}"
 
 APP=build/Pulse.app
@@ -22,11 +22,15 @@ codesign --force --sign - $APP
 
 case "${1:-}" in
   --install)
+    # Replace the copy you actually run (Homebrew puts it in /Applications), else use ~/Applications.
+    DEST=~/Applications
+    [[ -d /Applications/Pulse.app ]] && DEST=/Applications
     pkill -x Pulse 2>/dev/null && sleep 1 || true
-    rm -rf ~/Applications/Pulse.app
-    mkdir -p ~/Applications && cp -R $APP ~/Applications/
-    open ~/Applications/Pulse.app
-    echo "Installed ~/Applications/Pulse.app" ;;
+    rm -rf $DEST/Pulse.app
+    mkdir -p $DEST && cp -R $APP $DEST/
+    [[ $DEST == /Applications ]] && rm -rf ~/Applications/Pulse.app
+    open $DEST/Pulse.app
+    echo "Installed $DEST/Pulse.app" ;;
   --release)
     ditto -c -k --keepParent $APP build/Pulse-$VERSION.zip
     shasum -a 256 build/Pulse-$VERSION.zip ;;
